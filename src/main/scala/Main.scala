@@ -1,3 +1,4 @@
+import com.google.common.util.concurrent.RateLimiter
 import pb.ProgressBar
 
 import scala.util.Try
@@ -39,6 +40,7 @@ object Main extends App {
   println
 
   // Scrape
+  val throttle    = RateLimiter.create(2.0)
   val pb          = new ProgressBar(linksToScrape.size)
   var attachments = 0
   var bytesTotal  = 0
@@ -56,6 +58,7 @@ object Main extends App {
           EvernoteApi.makeInlineAttachment
         )
       }
+      throttle.acquire
       maybeNote.map(ev.persistNote(_, notebookId)).recover {
         case t => println(s"Failed to create note '${article.title}'. Reason: $t")
       }
