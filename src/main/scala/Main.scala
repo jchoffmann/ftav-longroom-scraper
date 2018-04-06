@@ -1,7 +1,8 @@
+import com.evernote.edam.error.EDAMSystemException
 import com.google.common.util.concurrent.RateLimiter
 import pb.ProgressBar
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 object Main extends App {
   val banner =
@@ -59,8 +60,10 @@ object Main extends App {
         )
       }
       throttle.acquire
-      maybeNote.map(ev.persistNote(_, notebookId)).recover {
-        case t => println(s"Failed to create note '${article.title}'. Reason: $t")
+      maybeNote match {
+        case Success(note)                   => ev.persistNote(note, notebookId)
+        case Failure(t: EDAMSystemException) => throw t
+        case Failure(t)                      => println(s"Failed to create note '${article.title}'. Reason: $t")
       }
     })
 
