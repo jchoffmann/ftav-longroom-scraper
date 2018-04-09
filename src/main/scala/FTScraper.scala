@@ -1,7 +1,7 @@
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-import Scraper.Links
+import FTScraper.Links
 import org.jsoup.{Connection, Jsoup}
 
 import scala.annotation.tailrec
@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.StdIn
 
-object Scraper {
+object FTScraper {
 
   private val landingPages =
     Set("https://ftalphaville.ft.com/longroom/home", "https://ftalphaville.ft.com/longroom/home/?page=1")
@@ -33,7 +33,7 @@ object Scraper {
 
 }
 
-class Scraper(sessionId: String) {
+class FTScraper(sessionId: String) {
 
   private def connection(url: String): Connection =
     Jsoup
@@ -62,7 +62,7 @@ class Scraper(sessionId: String) {
         scrapeLinksR(current.nextPages -- newSeen.nextPages, newSeen, depth + 1)
       }
     }
-    scrapeLinksR(Scraper.landingPages, Links(), 0)
+    scrapeLinksR(FTScraper.landingPages, Links(), 0)
   }
 
   def scrapeArticle(url: String, downloadAttachments: Boolean = false): Article = {
@@ -75,15 +75,15 @@ class Scraper(sessionId: String) {
           val ext = fileIcon.split("[/\\.]").dropRight(1).last
           (s"$fileName.$ext", ext)
         }
-      val mime    = Scraper.queryMimeDB(ext)
+      val mime    = FTScraper.queryMimeDB(ext)
       val content = if (downloadAttachments) connection(url).execute.bodyAsBytes else Array.emptyByteArray
       Attachment(name, mime, content, url)
     }
     def classifyRequest(article: Article) = {
       val hasAttachments  = article.attachments.nonEmpty
-      val hasTitleKeyword = Scraper.titleKeywordsThatIndicateRequests.exists(article.title.toLowerCase.contains)
+      val hasTitleKeyword = FTScraper.titleKeywordsThatIndicateRequests.exists(article.title.toLowerCase.contains)
       val hasContentKeyword =
-        Scraper.contentKeywordsThatIndicateRequests.exists(article.content.toLowerCase.contains)
+        FTScraper.contentKeywordsThatIndicateRequests.exists(article.content.toLowerCase.contains)
       if (!hasAttachments && (hasTitleKeyword || hasContentKeyword))
         article.copy(tags = Tag("request", "") +: article.tags)
       else
@@ -105,7 +105,7 @@ class Scraper(sessionId: String) {
       .map((scrapeAttachment _).tupled)
       .toList
     val article =
-      Article(title, author, ZonedDateTime.from(Scraper.fmt.parse(timestamp)), tags, content, attachments, url)
+      Article(title, author, ZonedDateTime.from(FTScraper.fmt.parse(timestamp)), tags, content, attachments, url)
     classifyRequest(article)
   }
 

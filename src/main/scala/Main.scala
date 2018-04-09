@@ -18,7 +18,7 @@ object Main extends App {
   val notebook       = "FTAlphaVille Long Room"
 
   // TODO Change to use Akka actors
-  val sc = new Scraper(sessionId)
+  val sc = new FTScraper(sessionId)
   val ev = new EvernoteApi(developerToken)
 
   println(banner)
