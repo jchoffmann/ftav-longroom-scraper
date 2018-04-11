@@ -1,13 +1,16 @@
+package de.jhoffmann.api
+
+import java.security.MessageDigest
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-import FTScraper.Links
 import org.jsoup.{Connection, Jsoup}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.StdIn
+import scala.xml.Utility
 
 object FTScraper {
 
@@ -27,13 +30,52 @@ object FTScraper {
   private def queryMimeDB(ext: String) =
     mimeDB.getOrElseUpdate(ext.trim.toLowerCase, StdIn.readLine(s"New MIME type for extension $ext: ").trim.toLowerCase)
 
-  case class Links(nextPages: Set[String] = Set.empty, articleLinks: List[(String, String)] = Nil) {
-    def ++(other: Links) = Links(nextPages ++ other.nextPages, articleLinks ++ other.articleLinks)
+  // Domain
+
+  case class Article(title: String,
+                     author: Author,
+                     timestamp: ZonedDateTime,
+                     tags: List[Tag],
+                     content: String,
+                     attachments: List[Attachment],
+                     url: String) {
+
+    def escapedTitle: String = Utility.escape(title)
+
+    def escapedContent: String = Utility.escape(content)
+  }
+
+  case class Author(name: String, url: String) {
+    def escapedName: String = Utility.escape(name)
+  }
+
+  case class Tag(name: String, url: String) {
+    def escapedName: String = Utility.escape(name)
+  }
+
+  case class Attachment(name: String, mime: String, content: Array[Byte], url: String) {
+    def hasContent: Boolean = content.nonEmpty
+
+    def hash: Array[Byte] = MessageDigest.getInstance("MD5").digest(content)
+
+    def hashHex: String = hash.map("%02X" format _).mkString
+
+    def escapedName: String = Utility.escape(name)
+
+    def escapedUrl: String = Utility.escape(url)
+  }
+
+  type ArticleLinks = Map[String, String]
+
+  case class Links(urls: Set[String] = Set.empty, articles: ArticleLinks = Map.empty) {
+    def ++(other: Links) = Links(urls ++ other.urls, articles ++ other.articles)
   }
 
 }
 
 class FTScraper(sessionId: String) {
+
+  import FTScraper._
 
   private def connection(url: String): Connection =
     Jsoup
@@ -43,26 +85,25 @@ class FTScraper(sessionId: String) {
       .maxBodySize(0)
       .timeout(120 * 1000)
 
-  def scrapeLinks(maxDepth: Int = Int.MaxValue): Links = {
+  def scrapeLinks(callback: (Int, ArticleLinks) => Unit, maxDepth: Int = Int.MaxValue): ArticleLinks = {
     def parseLinks(url: String): Links = {
       val doc       = connection(url).get
       val pageLinks = doc.select("a[href*=longroom][data-trackable=link]").eachAttr("abs:href").asScala.toSet
       val articleLinks =
-        doc.select("a[href*=longroom][data-trackable=heading]").asScala.map(e => (e.text, e.attr("abs:href"))).toList
+        doc.select("a[href*=longroom][data-trackable=heading]").asScala.map(e => (e.text, e.attr("abs:href"))).toMap
       Links(pageLinks, articleLinks)
     }
     @tailrec
-    def scrapeLinksR(urls: Set[String], seen: Links, depth: Int): Links = {
-      println(s"Level $depth: Parsing $urls")
+    def parseLinksR(urls: Set[String], seen: Set[String], depth: Int, acc: Links): ArticleLinks = {
       if (urls.isEmpty || depth >= maxDepth)
-        seen
+        acc.articles
       else {
-        val current = urls.map(parseLinks).reduceLeft(_ ++ _)
-        val newSeen = Links(seen.nextPages ++ urls, seen.articleLinks ++ current.articleLinks)
-        scrapeLinksR(current.nextPages -- newSeen.nextPages, newSeen, depth + 1)
+        val current = (urls -- seen).map(parseLinks).foldLeft(Links())(_ ++ _)
+        callback(depth, current.articles)
+        parseLinksR(current.urls, seen ++ urls, depth + 1, acc ++ current)
       }
     }
-    scrapeLinksR(FTScraper.landingPages, Links(), 0)
+    parseLinksR(landingPages, Set.empty, 0, Links())
   }
 
   def scrapeArticle(url: String, downloadAttachments: Boolean = false): Article = {
@@ -75,15 +116,15 @@ class FTScraper(sessionId: String) {
           val ext = fileIcon.split("[/\\.]").dropRight(1).last
           (s"$fileName.$ext", ext)
         }
-      val mime    = FTScraper.queryMimeDB(ext)
+      val mime    = queryMimeDB(ext)
       val content = if (downloadAttachments) connection(url).execute.bodyAsBytes else Array.emptyByteArray
       Attachment(name, mime, content, url)
     }
     def classifyRequest(article: Article) = {
       val hasAttachments  = article.attachments.nonEmpty
-      val hasTitleKeyword = FTScraper.titleKeywordsThatIndicateRequests.exists(article.title.toLowerCase.contains)
+      val hasTitleKeyword = titleKeywordsThatIndicateRequests.exists(article.title.toLowerCase.contains)
       val hasContentKeyword =
-        FTScraper.contentKeywordsThatIndicateRequests.exists(article.content.toLowerCase.contains)
+        contentKeywordsThatIndicateRequests.exists(article.content.toLowerCase.contains)
       if (!hasAttachments && (hasTitleKeyword || hasContentKeyword))
         article.copy(tags = Tag("request", "") +: article.tags)
       else
@@ -105,7 +146,7 @@ class FTScraper(sessionId: String) {
       .map((scrapeAttachment _).tupled)
       .toList
     val article =
-      Article(title, author, ZonedDateTime.from(FTScraper.fmt.parse(timestamp)), tags, content, attachments, url)
+      Article(title, author, ZonedDateTime.from(fmt.parse(timestamp)), tags, content, attachments, url)
     classifyRequest(article)
   }
 

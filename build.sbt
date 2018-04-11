@@ -9,7 +9,8 @@ lazy val root = project
       "org.jsoup"              % "jsoup"        % "1.11.2",
       "com.evernote"           % "evernote-api" % "1.25.1",
       "org.scala-lang.modules" %% "scala-xml"   % "1.1.0",
-      "com.google.guava"       % "guava"        % "24.1-jre"
+      "com.google.guava"       % "guava"        % "24.1-jre",
+      "com.typesafe.akka"      %% "akka-actor"  % "2.5.11"
 //      "com.github.scopt"       %% "scopt"       % "3.7.0"
     )
   ))
