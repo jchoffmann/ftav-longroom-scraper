@@ -3,7 +3,7 @@ package de.jhoffmann
 import java.time.format.DateTimeFormatter
 
 import akka.actor.{Actor, ActorContext, ActorLogging, ActorRef, Props}
-import com.evernote.edam.`type`.Note
+import com.evernote.edam.`type`.{Note, NoteAttributes}
 import de.jhoffmann.NoteCreator.CreateNote
 import de.jhoffmann.NotePersistor.Persist
 import de.jhoffmann.api.FTScraper.{Article, Attachment, Tag}
@@ -29,6 +29,9 @@ class NoteCreator(makeNotePersistor: ActorContext => ActorRef) extends Actor wit
       note.setTitle(article.title)
       note.setContent(content)
       note.setCreated(article.timestamp.toInstant.getEpochSecond * 1000L)
+      val attr = new NoteAttributes
+      attr.setSourceURL(article.url)
+      note.setAttributes(attr)
       article.tags.map(t => s"ft_${t.name.trim.replaceAll(" +", "_").toLowerCase}").foreach(note.addToTagNames)
       log.debug(s"Created note '${note.getTitle}'")
       notePersistor ! Persist(note)

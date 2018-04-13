@@ -65,9 +65,7 @@ object FTScraper {
     def escapedUrl: String = Utility.escape(url)
   }
 
-  type ArticleLinks = Map[String, String]
-
-  case class Links(urls: Set[String] = Set.empty, articles: ArticleLinks = Map.empty) {
+  case class Links(urls: Set[String] = Set.empty, articles: Set[String] = Set.empty) {
     def ++(other: Links) = Links(urls ++ other.urls, articles ++ other.articles)
   }
 
@@ -85,16 +83,16 @@ class FTScraper(sessionId: String) {
       .maxBodySize(0)
       .timeout(120 * 1000)
 
-  def scrapeLinks(callback: (Int, ArticleLinks) => Unit, maxDepth: Int = Int.MaxValue): ArticleLinks = {
+  def scrapeLinks(callback: (Int, Set[String]) => Unit, maxDepth: Int = Int.MaxValue): Set[String] = {
     def parseLinks(url: String): Links = {
       val doc       = connection(url).get
       val pageLinks = doc.select("a[href*=longroom][data-trackable=link]").eachAttr("abs:href").asScala.toSet
       val articleLinks =
-        doc.select("a[href*=longroom][data-trackable=heading]").asScala.map(e => (e.text, e.attr("abs:href"))).toMap
+        doc.select("a[href*=longroom][data-trackable=heading]").asScala.map(_.attr("abs:href")).toSet
       Links(pageLinks, articleLinks)
     }
     @tailrec
-    def parseLinksR(urls: Set[String], seen: Set[String], depth: Int, acc: Links): ArticleLinks = {
+    def parseLinksR(urls: Set[String], seen: Set[String], depth: Int, acc: Links): Set[String] = {
       if (urls.isEmpty || depth >= maxDepth)
         acc.articles
       else {

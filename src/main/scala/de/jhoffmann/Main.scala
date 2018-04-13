@@ -20,15 +20,10 @@ object Main extends App {
   val developerToken = "..."
   val notebook       = "FTAlphaVille Long Room"
 
-  // APIs
-  val ft = new FTScraper(sessionId)
-  val ev = new Evernote(developerToken)
-
-  // Check what we have not yet downloaded
+  // Set up APIs
+  val ft         = new FTScraper(sessionId)
+  val ev         = new Evernote(developerToken)
   val notebookId = ev.findNoteBook(notebook).get.getGuid
-  println("Collecting notes from Evernote ...")
-  val notes = ev.findNoteTitles(notebookId).toSet
-  println(s"Found ${notes.size} notes")
 
   // Set up actors
   val persistRate      = 500D / (60D * 60D)
@@ -40,13 +35,18 @@ object Main extends App {
   val makeNoteCreator = (ctx: ActorContext) => ctx.actorOf(NoteCreator.props(makeNotePersistor), "noteCreator")
   val articleScraper  = actors.actorOf(ArticleScraper.props(scrapeRate, ft, makeNoteCreator), "articleScraper")
 
+  // Check what we have not yet downloaded
+  println("Collecting notes from Evernote ...")
+  val notes = ev.findNotes(notebookId).map(_.getAttributes.getSourceURL).filter(_ != null).toSet
+  println(s"Found ${notes.size} notes")
+
   // Scrape links
   var total = 0
   ft.scrapeLinks(
     (level, links) => {
-      val filtered = links.filterKeys(!notes.contains(_))
+      val filtered = links -- notes
       println(s"Level $level: Ignored ${links.size - filtered.size}, found ${filtered.size}: $filtered")
-      filtered.values.foreach(articleScraper ! ScrapeArticle(_))
+      filtered.foreach(articleScraper ! ScrapeArticle(_))
       total += filtered.size
     },
     maxDepth = Int.MaxValue

@@ -5,8 +5,10 @@ import java.time.ZonedDateTime
 import com.evernote.auth.{EvernoteAuth, EvernoteService}
 import com.evernote.clients.ClientFactory
 import com.evernote.edam.`type`.{Note, Notebook, Resource}
-import com.evernote.edam.notestore.{NoteFilter, NotesMetadataResultSpec}
+import com.evernote.edam.limits.Constants
+import com.evernote.edam.notestore.{NoteFilter, NoteMetadata, NotesMetadataResultSpec}
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
 class Evernote(developerToken: String) {
@@ -16,12 +18,21 @@ class Evernote(developerToken: String) {
     new ClientFactory(auth).createNoteStoreClient
   }
 
-  def findNoteTitles(notebookGuid: String): List[String] = {
+  def findNotes(notebookGuid: String): List[NoteMetadata] = {
     val filter = new NoteFilter
     filter.setNotebookGuid(notebookGuid)
     val spec = new NotesMetadataResultSpec
     spec.setIncludeTitle(true)
-    noteStore.findNotesMetadata(filter, 0, Int.MaxValue, spec).getNotes.asScala.toList.map(_.getTitle)
+    spec.setIncludeAttributes(true)
+    @tailrec
+    def findNotesR(titles: List[NoteMetadata]): List[NoteMetadata] = {
+      val meta = noteStore.findNotesMetadata(filter, titles.size, Constants.EDAM_USER_NOTES_MAX, spec)
+      if (meta.getNotesSize == 0)
+        titles
+      else
+        findNotesR(titles ++ meta.getNotes.asScala.toList)
+    }
+    findNotesR(Nil)
   }
 
   def findNoteBook(name: String): Option[Notebook] = noteStore.listNotebooks.asScala.find(_.getName == name)
