@@ -9,7 +9,6 @@ import org.jsoup.{Connection, Jsoup}
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.io.StdIn
 import scala.xml.Utility
 
 object FTScraper {
@@ -23,12 +22,40 @@ object FTScraper {
   private val contentKeywordsThatIndicateRequests = List("request", "anyone")
 
   private val mimeDB = mutable.Map.empty[String, String]
-  mimeDB.put("pdf", "application/pdf")
   mimeDB.put("jpg", "image/jpeg")
+  mimeDB.put("jpeg", "image/jpeg")
+  mimeDB.put("gif", "image/gif")
+  mimeDB.put("png", "image/png")
+  mimeDB.put("bmp", "image/bmp")
+  mimeDB.put("tif", "image/tiff")
+  mimeDB.put("tiff", "image/tiff")
+  mimeDB.put("htm", "text/html")
+  mimeDB.put("html", "text/html")
+  mimeDB.put("txt", "text/plain")
+  mimeDB.put("csv", "text/csv")
+  mimeDB.put("pdf", "application/pdf")
+  mimeDB.put("doc", "application/msword")
   mimeDB.put("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+  mimeDB.put("xls", "application/vnd.ms-excel")
+  mimeDB.put("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+  mimeDB.put("ppt", "application/vnd.ms-powerpoint")
+  mimeDB.put("pps", "application/vnd.ms-powerpoint")
+  mimeDB.put("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+  mimeDB.put("ppsx", "application/vnd.openxmlformats-officedocument.presentationml.slideshow")
+  mimeDB.put("wks", "application/vnd.ms-works")
+  mimeDB.put("wm", "video/x-ms-wm")
+  mimeDB.put("wmv", "video/x-ms-wmv")
+  mimeDB.put("mp3", "audio/mpeg")
+  mimeDB.put("flv", "video/x-flv")
+  mimeDB.put("emf", "application/emf")
 
-  private def queryMimeDB(ext: String) =
-    mimeDB.getOrElseUpdate(ext.trim.toLowerCase, StdIn.readLine(s"New MIME type for extension $ext: ").trim.toLowerCase)
+//  private def queryMimeDB(url: String, attUrl: String, ext: String) =
+//    mimeDB.getOrElseUpdate(ext.trim.toLowerCase, StdIn.readLine(s"New MIME type for extension $ext: ").trim.toLowerCase)
+  private def queryMimeDB(url: String, attUrl: String, ext: String) =
+    mimeDB.getOrElse(ext.trim.toLowerCase, {
+      println(s"$url had unknown MIME type for extension $ext: $attUrl")
+      "unknown"
+    })
 
   // Domain
 
@@ -105,8 +132,8 @@ class FTScraper(sessionId: String) {
   }
 
   def scrapeArticle(url: String, downloadAttachments: Boolean = false): Article = {
-    def scrapeAttachment(url: String, fileIcon: String) = {
-      val fileName = url.toString.split("/").last
+    def scrapeAttachment(attUrl: String, fileIcon: String) = {
+      val fileName = attUrl.toString.split("/").last
       val (name, ext) =
         if (fileName.contains("."))
           (fileName, fileName.split("\\.").last)
@@ -114,9 +141,9 @@ class FTScraper(sessionId: String) {
           val ext = fileIcon.split("[/\\.]").dropRight(1).last
           (s"$fileName.$ext", ext)
         }
-      val mime    = queryMimeDB(ext)
-      val content = if (downloadAttachments) connection(url).execute.bodyAsBytes else Array.emptyByteArray
-      Attachment(name, mime, content, url)
+      val mime    = queryMimeDB(url, attUrl, ext)
+      val content = if (downloadAttachments) connection(attUrl).execute.bodyAsBytes else Array.emptyByteArray
+      Attachment(name, mime, content, attUrl)
     }
     def classifyRequest(article: Article) = {
       val hasAttachments  = article.attachments.nonEmpty
