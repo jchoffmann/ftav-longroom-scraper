@@ -22,8 +22,8 @@ class NoteCreator(makeNotePersistor: ActorContext => ActorRef) extends Actor wit
 
   override def receive: Receive = {
     case CreateNote(article) =>
-      val attachments = article.attachments.map(makeAttachment)
-      val tags        = article.tags.filter(_.url.nonEmpty).map(makeTag).mkString("/ ")
+      val attachments = article.attachments.map(makeFragment)
+      val tags        = article.tags.filter(_.url.nonEmpty).map(makeFragment).mkString("/ ")
       val content     = makeContent(article, attachments, tags)
       val note        = new Note
       note.setTitle(article.title)
@@ -32,18 +32,18 @@ class NoteCreator(makeNotePersistor: ActorContext => ActorRef) extends Actor wit
       val attr = new NoteAttributes
       attr.setSourceURL(article.url)
       note.setAttributes(attr)
-      article.tags.map(t => s"ft_${t.name.trim.replaceAll(" +", "_").toLowerCase}").foreach(note.addToTagNames)
+      article.tags.map(t => s"ft_${t.name.trim.replaceAll("[ _,]+", "_").toLowerCase}").foreach(note.addToTagNames)
       log.debug(s"Created note '${note.getTitle}'")
       notePersistor ! Persist(note)
   }
 
-  private def makeAttachment(att: Attachment) =
+  private def makeFragment(att: Attachment) =
     s"""
        |<hr/>
        |<div>Attachment: <a href="${att.escapedUrl}">${att.escapedName}</a></div>
      """.stripMargin.replaceAll("\n", "")
 
-  private def makeTag(tag: Tag) =
+  private def makeFragment(tag: Tag) =
     s"""
        |<a href="${tag.url}">${tag.escapedName}</a>
      """.stripMargin.replaceAll("\n", "")
