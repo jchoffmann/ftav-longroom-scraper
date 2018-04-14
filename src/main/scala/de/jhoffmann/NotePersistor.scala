@@ -25,4 +25,15 @@ class NotePersistor(rate: Double, notebookGuid: String, ev: Evernote) extends Ac
       progressReporter ! Increment
       log.debug(s"Persisted note '${note.getTitle}'")
   }
+
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    message match {
+      case Some(Persist(note)) =>
+        if (note.isSetAttributes) log.warning(s"Could not persist note for ${note.getAttributes.getSourceURL}")
+        else log.warning(s"Could not persist note '${note.getTitle}'")
+
+      case _ =>
+    }
+    super.preRestart(reason, message)
+  }
 }

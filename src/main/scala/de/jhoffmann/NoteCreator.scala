@@ -65,4 +65,13 @@ class NoteCreator(makeNotePersistor: ActorContext => ActorRef) extends Actor wit
        |</en-note>
     """.stripMargin.replaceAll("\n", "")
 
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    message match {
+      case Some(CreateNote(article)) => log.warning(s"Could not create not for ${article.url}")
+
+      case _ =>
+    }
+    super.preRestart(reason, message)
+  }
+
 }

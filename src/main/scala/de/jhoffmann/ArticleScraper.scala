@@ -26,4 +26,13 @@ class ArticleScraper(rate: Double, ft: api.FTScraper, makeNoteCreator: ActorCont
       log.debug(s"Scraped article '${article.title}'")
       noteCreator ! CreateNote(article)
   }
+
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    message match {
+      case Some(ScrapeArticle(url)) => log.warning(s"Could not scrape $url")
+
+      case _ =>
+    }
+    super.preRestart(reason, message)
+  }
 }
