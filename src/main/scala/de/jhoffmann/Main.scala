@@ -6,34 +6,22 @@ import de.jhoffmann.ProgressReporter.Show
 import de.jhoffmann.api.{Evernote, FTScraper}
 
 object Main extends App {
-  println(
-    s"""
-       |=======================================
-       |=== FT Alphaville Long Room Scraper ===
-       |=======================================
-       |
-     """.stripMargin
-  )
-
-  // TODO Add these as command line properties
-  val sessionId      = "..."
-  val developerToken = "..."
-  val notebook       = "FTAlphaVille Long Room"
+  val opts = CommandLine
+    .parse(args, CommandLineConfig())
+    .getOrElse(throw new RuntimeException("Invalid command line parameters"))
 
   // Set up APIs
-  val ft         = new FTScraper(sessionId)
-  val ev         = new Evernote(developerToken)
-  val notebookId = ev.findNoteBook(notebook).get.getGuid
+  val ft         = new FTScraper(opts.sessionId)
+  val ev         = new Evernote(opts.devToken)
+  val notebookId = ev.findNoteBook(opts.noteBook).get.getGuid
 
-  // Set up actors
-  val persistRate      = 500D / (60D * 60D)
-  val scrapeRate       = 1D
+  // Set up Actors
   val actors           = ActorSystem.create
   val progressReporter = actors.actorOf(ProgressReporter.props, "progressReporter")
   val makeNotePersistor = (ctx: ActorContext) =>
-    ctx.actorOf(NotePersistor.props(persistRate, ev, notebookId), "notePersistor")
+    ctx.actorOf(NotePersistor.props(opts.persistRate, ev, notebookId), "notePersistor")
   val makeNoteCreator = (ctx: ActorContext) => ctx.actorOf(NoteCreator.props(makeNotePersistor), "noteCreator")
-  val articleScraper  = actors.actorOf(ArticleScraper.props(scrapeRate, ft, makeNoteCreator), "articleScraper")
+  val articleScraper  = actors.actorOf(ArticleScraper.props(opts.scrapeRate, ft, makeNoteCreator), "articleScraper")
 
   // Check what we have not yet downloaded
   println("Collecting notes from Evernote ...")
