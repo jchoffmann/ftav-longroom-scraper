@@ -1,11 +1,11 @@
-package de.jhoffmann
+package de.jhoffmann.actors
 
 import java.time.format.DateTimeFormatter
 
 import akka.actor.{Actor, ActorContext, ActorLogging, ActorRef, Props}
 import com.evernote.edam.`type`.{Note, NoteAttributes}
-import de.jhoffmann.NoteCreator.CreateNote
-import de.jhoffmann.NotePersistor.Persist
+import de.jhoffmann.actors.NoteCreator.CreateNote
+import de.jhoffmann.actors.NotePersistor.Persist
 import de.jhoffmann.api.FTScraper.{Article, Attachment, Tag}
 
 object NoteCreator {

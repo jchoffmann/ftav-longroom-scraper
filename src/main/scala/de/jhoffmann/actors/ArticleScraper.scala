@@ -1,9 +1,10 @@
-package de.jhoffmann
+package de.jhoffmann.actors
 
 import akka.actor.{Actor, ActorContext, ActorLogging, ActorRef, Props}
 import com.google.common.util.concurrent.RateLimiter
-import de.jhoffmann.ArticleScraper.ScrapeArticle
-import de.jhoffmann.NoteCreator.CreateNote
+import de.jhoffmann.actors.ArticleScraper.ScrapeArticle
+import de.jhoffmann.actors.NoteCreator.CreateNote
+import de.jhoffmann.api
 
 object ArticleScraper {
   def props(rate: Double, ft: api.FTScraper, makeNoteCreator: ActorContext => ActorRef) =

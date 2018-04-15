@@ -1,10 +1,10 @@
-package de.jhoffmann
+package de.jhoffmann.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
 import com.evernote.edam.`type`.Note
 import com.google.common.util.concurrent.RateLimiter
-import de.jhoffmann.NotePersistor.Persist
-import de.jhoffmann.ProgressReporter.Increment
+import de.jhoffmann.actors.NotePersistor.Persist
+import de.jhoffmann.actors.ProgressReporter.Increment
 import de.jhoffmann.api.Evernote
 
 object NotePersistor {

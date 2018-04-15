@@ -1,14 +1,17 @@
 package de.jhoffmann
 
 import akka.actor.{ActorContext, ActorSystem}
-import de.jhoffmann.ArticleScraper.ScrapeArticle
-import de.jhoffmann.ProgressReporter.Show
+import de.jhoffmann.actors.ArticleScraper.ScrapeArticle
+import de.jhoffmann.actors.ProgressReporter.Show
+import de.jhoffmann.actors.{ArticleScraper, NoteCreator, NotePersistor, ProgressReporter}
 import de.jhoffmann.api.{Evernote, FTScraper}
 
 object Main extends App {
   val opts = CommandLine
     .parse(args, CommandLineConfig())
     .getOrElse(throw new RuntimeException("Invalid command line parameters"))
+
+  println(s"FT Alphaville Long Room Scraper v${de.jhoffmann.BuildInfo.version}")
 
   // Set up APIs
   val ft         = new FTScraper(opts.sessionId)
@@ -31,9 +34,9 @@ object Main extends App {
   // Scrape links
   var total = 0
   ft.scrapeLinks(
-    (level, links) => {
+    (depth, links) => {
       val filtered = links -- notes
-      println(s"Level $level: Ignored ${links.size - filtered.size}, found ${filtered.size}: $filtered")
+      println(s"Depth $depth: Ignored ${links.size - filtered.size}, found ${filtered.size}: $filtered")
       filtered.foreach(articleScraper ! ScrapeArticle(_))
       total += filtered.size
     },

@@ -1,7 +1,7 @@
-package de.jhoffmann
+package de.jhoffmann.actors
 
 import akka.actor.{Actor, Props}
-import de.jhoffmann.ProgressReporter.{Increment, Show}
+import de.jhoffmann.actors.ProgressReporter.{Increment, Show}
 import pb.ProgressBar
 
 object ProgressReporter {
