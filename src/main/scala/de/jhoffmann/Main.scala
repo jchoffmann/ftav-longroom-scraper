@@ -40,7 +40,7 @@ object Main extends App {
       filtered.foreach(articleScraper ! ScrapeArticle(_))
       total += filtered.size
     },
-    maxDepth = Int.MaxValue
+    maxDepth = opts.maxDepth
   )
   println
   progressReporter ! Show(total)

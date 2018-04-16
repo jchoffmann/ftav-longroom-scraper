@@ -3,6 +3,7 @@ package de.jhoffmann
 case class CommandLineConfig(sessionId: String = "",
                              devToken: String = "",
                              noteBook: String = "",
+                             maxDepth: Int = Int.MaxValue,
                              scrapeRate: Double = 1.0,
                              persistRate: Double = 500D / (60D * 60D)) // EM seems to accept 500 created notes per hour
 
@@ -23,6 +24,10 @@ object CommandLine extends scopt.OptionParser[CommandLineConfig]("sbt run") {
     .required()
     .action((x, c) => c.copy(noteBook = x))
     .text("Target notebook in Evernote (required)")
+
+  opt[Int]("maxDepth")
+    .action((x, c) => c.copy(maxDepth = x))
+    .text("Maximum number of pages to scrape for articles (default is Int.MaxValue)")
 
   opt[Double]("scrapeRate")
     .action((x, c) => c.copy(scrapeRate = x))
