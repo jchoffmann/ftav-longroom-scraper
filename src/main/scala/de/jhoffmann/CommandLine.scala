@@ -12,25 +12,25 @@ object CommandLine extends scopt.OptionParser[CommandLineConfig]("sbt run") {
   opt[String]("sessionId")
     .required()
     .action((x, c) => c.copy(sessionId = x))
-    .text("session ID for a logged in session on ftalphaville.ft.com")
+    .text("Session ID for a logged in session on ftalphaville.ft.com (required)")
 
   opt[String]("devToken")
     .required()
     .action((x, c) => c.copy(devToken = x))
-    .text("Evernote developer token")
+    .text("Evernote developer token (required)")
 
   opt[String]("noteBook")
     .required()
     .action((x, c) => c.copy(noteBook = x))
-    .text("target notebook in Evernote")
+    .text("Target notebook in Evernote (required)")
 
   opt[Double]("scrapeRate")
     .action((x, c) => c.copy(scrapeRate = x))
-    .text("rate at which FT articles are scraped (articles per second)")
+    .text("Rate at which FT articles are scraped (articles per second; default is 1)")
 
   opt[Double]("persistRate")
     .action((x, c) => c.copy(persistRate = x))
-    .text("rate at which notes are created in Evernote (notes per second)")
+    .text("rate at which notes are created in Evernote (notes per second; default is the equivalent of 500 per hour)")
 
   help("help").text("prints this usage text")
 }

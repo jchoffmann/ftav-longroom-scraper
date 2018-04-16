@@ -8,5 +8,6 @@ Notes to Evernote.
 * Evernote account
 * Evernote [Developer Token](https://dev.evernote.com/doc/articles/dev_tokens.php)
 ## Usage
-`sbt run --help`
-    
+See output of
+`sbt "run --help"`
+
